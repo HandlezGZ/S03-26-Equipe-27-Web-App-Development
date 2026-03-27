@@ -1,90 +1,90 @@
 # Frontend — SmartTrafficFlow Dashboard
 
-React dashboard for visualizing and interacting with urban traffic data.
+Dashboard React para visualização e interação com dados de tráfego urbano.
 
-## Tech Stack
+## Tecnologias
 
-| Layer        | Technology                          |
-|--------------|-------------------------------------|
-| Framework    | React 18.3.1                        |
-| Language     | TypeScript 5.5.4                    |
-| Build tool   | Vite 5.3.4                          |
-| Charts       | Recharts 2.12.7                     |
-| Maps         | Leaflet 1.9.4 + React-Leaflet 4.2.1 |
-| Runtime      | Node 20                             |
+| Camada         | Tecnologia                          |
+|----------------|-------------------------------------|
+| Framework      | React 18.3.1                        |
+| Linguagem      | TypeScript 5.5.4                    |
+| Ferramenta de build | Vite 5.3.4                    |
+| Gráficos       | Recharts 2.12.7                     |
+| Mapas          | Leaflet 1.9.4 + React-Leaflet 4.2.1 |
+| Runtime        | Node 20                             |
 
-## Getting Started
+## Início Rápido
 
-### Prerequisites
+### Pré-requisitos
 
 - Node 20+
-- Backend API running on `http://localhost:8080` (see `backend/README.md`)
+- API backend rodando em `http://localhost:8080` (veja `backend/README.md`)
 
-### Install and run
+### Instalar e executar
 
 ```bash
 npm install
 npm run dev
 ```
 
-The app runs on `http://localhost:5174`.
+A aplicação estará disponível em `http://localhost:5174`.
 
-### Environment
+### Ambiente
 
-Create a `.env` file (or `.env.local`) to override the API URL:
+Crie um arquivo `.env` (ou `.env.local`) para sobrescrever a URL da API:
 
 ```env
 VITE_API_BASE_URL=http://localhost:8080/api
 ```
 
-If this variable is not set, the app defaults to `http://localhost:8080/api`.
+Se a variável não for definida, o padrão é `http://localhost:8080/api`.
 
-### Other commands
+### Outros comandos
 
 ```bash
-npm run build     # Production build (outputs to dist/)
-npm run preview   # Preview production build on port 4174
+npm run build     # Build de produção (saída em dist/)
+npm run preview   # Pré-visualização do build de produção na porta 4174
 ```
 
-## Project Structure
+## Estrutura do Projeto
 
 ```
 src/
-├── main.tsx          # React root
-├── App.tsx           # Main component (dashboard logic and UI)
-├── styles.css        # Global styles
+├── main.tsx          # Raiz do React
+├── App.tsx           # Componente principal (lógica e UI do dashboard)
+├── styles.css        # Estilos globais
 ├── lib/
-│   └── api.ts        # Typed HTTP client (fetch-based)
+│   └── api.ts        # Cliente HTTP tipado (baseado em fetch)
 └── types/
-    └── api.ts        # Shared TypeScript interfaces
+    └── api.ts        # Interfaces TypeScript compartilhadas
 ```
 
-## Views
+## Telas
 
-### Home — Insights Dashboard
+### Home — Dashboard de Insights
 
-- **Summary cards**: total vehicles, peak window, mapped regions, average load
-- **Charts**:
-  - Hourly pressure curve (area chart)
-  - Weekday distribution (bar chart)
-  - Road type division (bar chart)
-- **Map**: Interactive Leaflet map with traffic point markers
-- **Insights panel**: Auto-generated narrative summaries from the backend
+- **Cards de resumo**: total de veículos, janela de pico, regiões mapeadas, carga média
+- **Gráficos**:
+  - Curva de pressão por hora (gráfico de área)
+  - Distribuição por dia da semana (gráfico de barras)
+  - Divisão por tipo de via (gráfico de barras)
+- **Mapa**: Mapa interativo Leaflet com marcadores de pontos de tráfego
+- **Painel de insights**: Resumos narrativos gerados automaticamente pelo backend
 
-### Workspace — Operations
+### Workspace — Operações
 
-- **Record form**: Manual entry of a traffic record (timestamp, road type, volume, region, event, weather)
-- **Simulation form**: Generate 1–250 random records for a named scenario
-- **Records table**: All traffic records with client-side filtering by region, road type, weather, and event type
-- **Export buttons**: Download all records as CSV or JSON
+- **Formulário de registro**: Inserção manual de um registro de tráfego (timestamp, tipo de via, volume, região, evento, clima)
+- **Formulário de simulação**: Geração de 1 a 250 registros aleatórios para um cenário nomeado
+- **Tabela de registros**: Todos os registros com filtros por região, tipo de via, clima e tipo de evento
+- **Botões de exportação**: Download de todos os registros em CSV ou JSON
 
-Both views share a live connection status indicator and a view switcher.
+Ambas as telas compartilham um indicador de status de conexão e um alternador de visão.
 
-## API Client
+## Cliente de API
 
-`src/lib/api.ts` exposes typed functions that wrap `fetch` calls:
+`src/lib/api.ts` expõe funções tipadas que encapsulam chamadas `fetch`:
 
-| Function               | Method | Endpoint                     |
+| Função                 | Método | Endpoint                     |
 |------------------------|--------|------------------------------|
 | `getTrafficRecords`    | GET    | `/traffic-records`           |
 | `createTrafficRecord`  | POST   | `/traffic-records`           |
@@ -94,11 +94,11 @@ Both views share a live connection status indicator and a view switcher.
 | `getTrafficMap`        | GET    | `/traffic-map`               |
 | `getExport`            | GET    | `/exports?format=...`        |
 
-Errors are surfaced as `ApiError` instances with a message from the response body.
+Erros são lançados como instâncias de `ApiError` com a mensagem vinda do corpo da resposta.
 
-## Type Definitions
+## Definições de Tipos
 
-Key interfaces in `src/types/api.ts`:
+Interfaces principais em `src/types/api.ts`:
 
 ```typescript
 interface TrafficRecord {

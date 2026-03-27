@@ -1,37 +1,37 @@
 # Backend — SmartTrafficFlow API
 
-REST API for registering and analyzing urban traffic data.
+API REST para registro e análise de dados de tráfego urbano.
 
-## Tech Stack
+## Tecnologias
 
-| Layer         | Technology                           |
+| Camada        | Tecnologia                           |
 |---------------|--------------------------------------|
-| Language      | Java 21                              |
+| Linguagem     | Java 21                              |
 | Framework     | Spring Boot 3.4.3                    |
-| Persistence   | Spring Data JPA + Hibernate          |
-| Database      | PostgreSQL 15                        |
-| Migrations    | Flyway                               |
-| API Docs      | SpringDoc OpenAPI 3.0 (Swagger UI)   |
+| Persistência  | Spring Data JPA + Hibernate          |
+| Banco de dados| PostgreSQL 15                        |
+| Migrações     | Flyway                               |
+| Docs da API   | SpringDoc OpenAPI 3.0 (Swagger UI)   |
 | Build         | Maven                                |
-| Testing       | JUnit 5 + Testcontainers             |
+| Testes        | JUnit 5 + Testcontainers             |
 
-## Getting Started
+## Início Rápido
 
-### Prerequisites
+### Pré-requisitos
 
 - Java 21+
 - Maven 3.9+
-- PostgreSQL 15 running on port `5432` (or use the Docker Compose setup in `infra/`)
+- PostgreSQL 15 rodando na porta `5432` (ou use o Docker Compose em `infra/`)
 
-### Configuration
+### Configuração
 
-Copy and edit the environment file:
+Copie e edite o arquivo de ambiente:
 
 ```bash
 cp .env.example .env
 ```
 
-Key variables (see `.env` for the full list):
+Variáveis principais (consulte `.env` para a lista completa):
 
 ```env
 SPRING_PROFILES_ACTIVE=dev
@@ -42,13 +42,13 @@ SPRING_DATASOURCE_PASSWORD=postgres
 APP_CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:5174
 ```
 
-### Run
+### Executar
 
 ```bash
 mvn spring-boot:run
 ```
 
-API base URL: `http://localhost:8080/api`
+URL base da API: `http://localhost:8080/api`
 Swagger UI: `http://localhost:8080/swagger-ui.html`
 
 ### Build
@@ -58,19 +58,19 @@ mvn clean package
 java -jar target/backend-*.jar
 ```
 
-## Project Structure
+## Estrutura do Projeto
 
 ```
 src/main/java/com/smarttrafficflow/backend/
 ├── api/
-│   ├── controller/     # REST endpoints
-│   ├── dto/            # Request / Response objects
-│   └── exception/      # Global error handling
-├── config/             # Spring beans (CORS, OpenAPI)
+│   ├── controller/     # Endpoints REST
+│   ├── dto/            # Objetos de Requisição / Resposta
+│   └── exception/      # Tratamento global de erros
+├── config/             # Beans Spring (CORS, OpenAPI)
 └── domain/
     ├── trafficrecord/
-    │   ├── entity/     # TrafficRecord JPA entity
-    │   ├── repository/ # Spring Data repository
+    │   ├── entity/     # Entidade JPA TrafficRecord
+    │   ├── repository/ # Repositório Spring Data
     │   └── service/    # TrafficRecordService
     ├── simulation/     # SimulationService
     ├── analytics/      # AnalyticsService
@@ -78,18 +78,18 @@ src/main/java/com/smarttrafficflow/backend/
     └── export/         # ExportService
 ```
 
-## API Reference
+## Referência da API
 
-All endpoints are prefixed with `/api`.
+Todos os endpoints têm o prefixo `/api`.
 
-### Traffic Records
+### Registros de Tráfego
 
-| Method | Path                  | Description                   |
-|--------|-----------------------|-------------------------------|
-| POST   | `/traffic-records`    | Create a traffic record       |
-| GET    | `/traffic-records`    | List all traffic records      |
+| Método | Caminho               | Descrição                          |
+|--------|-----------------------|------------------------------------|
+| POST   | `/traffic-records`    | Criar um registro de tráfego       |
+| GET    | `/traffic-records`    | Listar todos os registros          |
 
-**Create request body:**
+**Corpo da requisição (POST):**
 
 ```json
 {
@@ -102,35 +102,35 @@ All endpoints are prefixed with `/api`.
 }
 ```
 
-Road types: `LOCAL`, `ARTERIAL`, `HIGHWAY`
-Weather values: `SUNNY`, `RAIN`, `CLOUDY`
+Tipos de via: `LOCAL`, `ARTERIAL`, `HIGHWAY`
+Condições climáticas: `SUNNY`, `RAIN`, `CLOUDY`
 
-### Simulations
+### Simulações
 
-| Method | Path                    | Description                          |
-|--------|-------------------------|--------------------------------------|
-| POST   | `/simulations/generate` | Generate random traffic records      |
+| Método | Caminho                 | Descrição                               |
+|--------|-------------------------|-----------------------------------------|
+| POST   | `/simulations/generate` | Gerar registros de tráfego aleatórios   |
 
-**Request body:**
+**Corpo da requisição:**
 
 ```json
 {
-  "scenarioName": "rush-hour-test",
+  "scenarioName": "teste-hora-pico",
   "recordsToGenerate": 100
 }
 ```
 
-`recordsToGenerate` must be between 1 and 250.
+`recordsToGenerate` deve ser entre 1 e 250.
 
 ### Analytics
 
-| Method | Path             | Description                              |
-|--------|------------------|------------------------------------------|
-| GET    | `/traffic-stats` | Aggregated vehicle volume statistics     |
+| Método | Caminho          | Descrição                                   |
+|--------|------------------|---------------------------------------------|
+| GET    | `/traffic-stats` | Estatísticas agregadas de volume de veículos |
 
-Query parameter `groupBy`: `hour` | `weekday` | `roadType`
+Parâmetro de consulta `groupBy`: `hour` | `weekday` | `roadType`
 
-**Response:**
+**Resposta:**
 
 ```json
 {
@@ -141,11 +141,11 @@ Query parameter `groupBy`: `hour` | `weekday` | `roadType`
 
 ### Insights
 
-| Method | Path                | Description                     |
-|--------|---------------------|---------------------------------|
-| GET    | `/traffic-insights` | Auto-generated traffic insights |
+| Método | Caminho             | Descrição                              |
+|--------|---------------------|----------------------------------------|
+| GET    | `/traffic-insights` | Insights automáticos sobre o tráfego  |
 
-**Response:**
+**Resposta:**
 
 ```json
 {
@@ -156,25 +156,25 @@ Query parameter `groupBy`: `hour` | `weekday` | `roadType`
 }
 ```
 
-### Map Data
+### Dados do Mapa
 
-| Method | Path           | Description                   |
-|--------|----------------|-------------------------------|
-| GET    | `/traffic-map` | Geographic points for map view |
+| Método | Caminho        | Descrição                              |
+|--------|----------------|----------------------------------------|
+| GET    | `/traffic-map` | Pontos geográficos para visualização   |
 
-### Exports
+### Exportações
 
-| Method | Path       | Description                     |
-|--------|------------|---------------------------------|
-| GET    | `/exports` | Export all records as CSV/JSON  |
+| Método | Caminho    | Descrição                          |
+|--------|------------|------------------------------------|
+| GET    | `/exports` | Exportar todos os registros        |
 
-Query parameter `format`: `csv` | `json`
+Parâmetro de consulta `format`: `csv` | `json`
 
-## Database
+## Banco de Dados
 
 ### Schema
 
-Managed by Flyway. Migrations live in `src/main/resources/db/migration/`.
+Gerenciado pelo Flyway. As migrações ficam em `src/main/resources/db/migration/`.
 
 ```sql
 CREATE TABLE traffic_records (
@@ -188,17 +188,17 @@ CREATE TABLE traffic_records (
 );
 ```
 
-### Profiles
+### Perfis
 
-| Profile | Flyway  | DDL auto       | SQL logging |
-|---------|---------|----------------|-------------|
-| default | enabled | validate       | off         |
-| dev     | disabled| create-drop    | on          |
+| Perfil  | Flyway    | DDL auto       | Log SQL |
+|---------|-----------|----------------|---------|
+| default | habilitado| validate       | off     |
+| dev     | desabilitado| create-drop  | on      |
 
-## Testing
+## Testes
 
 ```bash
 mvn test
 ```
 
-Integration tests use Testcontainers to spin up a real PostgreSQL instance — no manual setup required.
+Os testes de integração utilizam Testcontainers para subir uma instância real do PostgreSQL — nenhuma configuração manual é necessária.

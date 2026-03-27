@@ -1,82 +1,82 @@
 # Infra — Docker Compose
 
-Local development environment for SmartTrafficFlow.
+Ambiente de desenvolvimento local para o SmartTrafficFlow.
 
-## Services
+## Serviços
 
-| Service               | Image                  | Port         | Description               |
-|-----------------------|------------------------|--------------|---------------------------|
-| `smarttraffic-db`     | postgres:15-alpine     | 5432         | PostgreSQL database        |
-| `smarttraffic-frontend` | node:20-alpine       | 5174         | React dev server           |
-| `pgadmin`             | dpage/pgadmin4         | 8100 → 80    | Database management UI     |
+| Serviço               | Imagem                 | Porta        | Descrição                      |
+|-----------------------|------------------------|--------------|--------------------------------|
+| `smarttraffic-db`     | postgres:15-alpine     | 5432         | Banco de dados PostgreSQL      |
+| `smarttraffic-frontend` | node:20-alpine       | 5174         | Servidor de desenvolvimento React |
+| `pgadmin`             | dpage/pgadmin4         | 8100 → 80    | Interface de gerenciamento do banco |
 
-> The Spring Boot backend is **not** containerized. It runs locally on port `8080`.
+> O backend Spring Boot **não** está containerizado. Ele roda localmente na porta `8080`.
 
-## Usage
+## Uso
 
-### Start all services
+### Iniciar todos os serviços
 
 ```bash
 docker compose up -d
 ```
 
-### Start a specific service
+### Iniciar um serviço específico
 
 ```bash
 docker compose up -d smarttraffic-db
 ```
 
-### Stop all services
+### Parar todos os serviços
 
 ```bash
 docker compose down
 ```
 
-### Stop and remove volumes (wipes database data)
+### Parar e remover volumes (apaga os dados do banco)
 
 ```bash
 docker compose down -v
 ```
 
-### View logs
+### Ver logs
 
 ```bash
 docker compose logs -f
 docker compose logs -f smarttraffic-frontend
 ```
 
-## Access
+## Acesso
 
-| Service    | URL                                          | Credentials             |
-|------------|----------------------------------------------|-------------------------|
-| Frontend   | http://localhost:5174                        | —                       |
-| pgAdmin    | http://localhost:8100                        | admin@admin.com / password |
-| PostgreSQL | localhost:5432                               | postgres / postgres     |
+| Serviço    | URL                       | Credenciais                |
+|------------|---------------------------|----------------------------|
+| Frontend   | http://localhost:5174     | —                          |
+| pgAdmin    | http://localhost:8100     | admin@admin.com / password |
+| PostgreSQL | localhost:5432            | postgres / postgres        |
 
-### Connecting pgAdmin to the database
+### Conectar o pgAdmin ao banco de dados
 
-1. Open http://localhost:8100 and log in.
-2. Add a new server:
+1. Abra http://localhost:8100 e faça login.
+2. Adicione um novo servidor:
    - **Host**: `smarttraffic-db`
-   - **Port**: `5432`
-   - **Database**: `smarttrafficflow`
-   - **Username**: `postgres`
-   - **Password**: `postgres`
+   - **Porta**: `5432`
+   - **Banco de dados**: `smarttrafficflow`
+   - **Usuário**: `postgres`
+   - **Senha**: `postgres`
 
 ## Volumes
 
-| Volume                  | Purpose                                    |
-|-------------------------|--------------------------------------------|
-| `postgres_data`         | Persists PostgreSQL data across restarts   |
-| `frontend_node_modules` | Caches `node_modules` inside the container |
+| Volume                  | Finalidade                                          |
+|-------------------------|-----------------------------------------------------|
+| `postgres_data`         | Persiste os dados do PostgreSQL entre reinicializações |
+| `frontend_node_modules` | Faz cache do `node_modules` dentro do container    |
 
-The frontend source code is bind-mounted from `../frontend/latest-app`, so file changes are reflected immediately via Vite HMR without rebuilding the container.
+O código-fonte do frontend é montado via bind mount a partir de `../frontend/latest-app`, portanto alterações nos arquivos são refletidas imediatamente via Vite HMR sem necessidade de reconstruir o container.
 
-## Network
+## Rede
 
-All services share a bridge network named `backend-network`. Use container service names (e.g., `smarttraffic-db`) as hostnames when communicating between containers.
+Todos os serviços compartilham uma rede bridge chamada `backend-network`. Use os nomes dos serviços (ex: `smarttraffic-db`) como hostnames na comunicação entre containers.
 
-## Notes
+## Observações
 
-- The frontend container installs npm dependencies on startup (`npm install && npm run dev --host 0.0.0.0`). First startup may be slow while dependencies are downloaded.
-- Database credentials are hardcoded for local development. Do not use these values in production.
+- O container do frontend instala as dependências npm na inicialização (`npm install && npm run dev --host 0.0.0.0`). A primeira inicialização pode ser lenta enquanto as dependências são baixadas.
+- As credenciais do banco de dados estão fixas no código para desenvolvimento local. Não utilize esses valores em produção.

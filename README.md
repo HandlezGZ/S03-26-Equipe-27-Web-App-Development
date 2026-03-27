@@ -1,22 +1,22 @@
 # SmartTrafficFlow
 
-A full-stack web application for monitoring, recording, and analyzing urban traffic data. It enables manual data entry, simulation of traffic scenarios, aggregated analytics, and map-based visualization.
+Aplicação web full-stack para monitoramento, registro e análise de dados de tráfego urbano. Permite inserção manual de dados, simulação de cenários de tráfego, análises agregadas e visualização em mapa.
 
-## Architecture Overview
+## Visão Geral da Arquitetura
 
 ```
 repository/
-├── backend/          # Spring Boot REST API (Java 21)
+├── backend/          # API REST com Spring Boot (Java 21)
 ├── frontend/
-│   └── latest-app/   # React + TypeScript dashboard (Vite)
-└── infra/            # Docker Compose orchestration
+│   └── latest-app/   # Dashboard React + TypeScript (Vite)
+└── infra/            # Orquestração com Docker Compose
 ```
 
-### Service Communication
+### Comunicação entre Serviços
 
 ```
 Frontend  (http://localhost:5174)
-    │  HTTP REST (CORS-enabled)
+    │  HTTP REST (CORS habilitado)
     ▼
 Backend   (http://localhost:8080/api)
     │  JDBC
@@ -24,75 +24,75 @@ Backend   (http://localhost:8080/api)
 PostgreSQL (localhost:5432)
 ```
 
-## Quick Start
+## Início Rápido
 
-### Prerequisites
+### Pré-requisitos
 
 - Java 21+
 - Maven 3.9+
 - Node 20+
 - Docker & Docker Compose
 
-### 1. Start the database and frontend via Docker
+### 1. Iniciar o banco de dados e o frontend via Docker
 
 ```bash
 cd infra
 docker compose up -d
 ```
 
-This starts:
-- **PostgreSQL 15** on port `5432`
-- **React frontend** on port `5174`
-- **pgAdmin** on port `8100`
+Isso inicia:
+- **PostgreSQL 15** na porta `5432`
+- **Frontend React** na porta `5174`
+- **pgAdmin** na porta `8100`
 
-### 2. Start the backend locally
+### 2. Iniciar o backend localmente
 
 ```bash
 cd backend
-cp .env.example .env   # adjust if needed
+cp .env.example .env   # ajuste se necessário
 mvn spring-boot:run
 ```
 
-The API will be available at `http://localhost:8080`.
+A API estará disponível em `http://localhost:8080`.
 Swagger UI: `http://localhost:8080/swagger-ui.html`
 
-## Services
+## Serviços
 
-| Service    | Technology              | Port  | README                              |
+| Serviço    | Tecnologia              | Porta | README                              |
 |------------|-------------------------|-------|-------------------------------------|
 | Backend    | Java 21 / Spring Boot   | 8080  | [backend/README.md](backend/README.md) |
 | Frontend   | React 18 / TypeScript   | 5174  | [frontend/latest-app/README.md](frontend/latest-app/README.md) |
 | Infra      | Docker Compose          | —     | [infra/README.md](infra/README.md)  |
 
-## Key Features
+## Funcionalidades Principais
 
-- **Traffic Records** — Create and browse traffic entries (road type, volume, weather, region, event)
-- **Simulation** — Generate up to 250 random traffic records for a given scenario
-- **Analytics** — Aggregate vehicle volume by hour, weekday, or road type
-- **Insights** — Auto-generated peak-hour and peak-road-type summaries
-- **Map View** — Region-based traffic point visualization (Leaflet)
-- **Exports** — Download all records as CSV or JSON
-- **API Docs** — OpenAPI 3.0 / Swagger UI included
+- **Registros de Tráfego** — Criação e listagem de entradas de tráfego (tipo de via, volume, clima, região, evento)
+- **Simulação** — Geração de até 250 registros aleatórios para um cenário definido
+- **Analytics** — Agregação do volume de veículos por hora, dia da semana ou tipo de via
+- **Insights** — Resumos automáticos de pico por hora e por tipo de via
+- **Mapa** — Visualização de pontos de tráfego por região (Leaflet)
+- **Exportações** — Download de todos os registros em CSV ou JSON
+- **Documentação da API** — OpenAPI 3.0 / Swagger UI incluído
 
-## Environment Variables
+## Variáveis de Ambiente
 
-See `.env` in the `backend/` directory for the full list. Key variables:
+Consulte o arquivo `.env` no diretório `backend/` para a lista completa. Variáveis principais:
 
-| Variable                    | Default                                              | Description                   |
-|-----------------------------|------------------------------------------------------|-------------------------------|
-| `SPRING_PROFILES_ACTIVE`    | `dev`                                                | Active Spring profile         |
-| `SERVER_PORT`               | `8080`                                               | Backend HTTP port             |
-| `SPRING_DATASOURCE_URL`     | `jdbc:postgresql://localhost:5432/smarttrafficflow`  | Database JDBC URL             |
-| `SPRING_DATASOURCE_USERNAME`| `postgres`                                           | Database user                 |
-| `SPRING_DATASOURCE_PASSWORD`| `postgres`                                           | Database password             |
-| `APP_CORS_ALLOWED_ORIGINS`  | `http://localhost:5173,http://localhost:5174,...`     | Allowed frontend origins      |
-| `VITE_API_BASE_URL`         | `http://localhost:8080/api`                          | Frontend API base URL         |
+| Variável                    | Padrão                                               | Descrição                          |
+|-----------------------------|------------------------------------------------------|------------------------------------|
+| `SPRING_PROFILES_ACTIVE`    | `dev`                                                | Perfil ativo do Spring             |
+| `SERVER_PORT`               | `8080`                                               | Porta HTTP do backend              |
+| `SPRING_DATASOURCE_URL`     | `jdbc:postgresql://localhost:5432/smarttrafficflow`  | URL JDBC do banco de dados         |
+| `SPRING_DATASOURCE_USERNAME`| `postgres`                                           | Usuário do banco de dados          |
+| `SPRING_DATASOURCE_PASSWORD`| `postgres`                                           | Senha do banco de dados            |
+| `APP_CORS_ALLOWED_ORIGINS`  | `http://localhost:5173,http://localhost:5174,...`     | Origens permitidas pelo CORS       |
+| `VITE_API_BASE_URL`         | `http://localhost:8080/api`                          | URL base da API no frontend        |
 
-## Project Status
+## Status do Projeto
 
-This project is at MVP stage with active development. Core features are fully integrated end-to-end. Known limitations:
+O projeto encontra-se em estágio MVP com desenvolvimento ativo. As funcionalidades principais estão integradas de ponta a ponta. Limitações conhecidas:
 
-- Backend is not yet containerized
-- Map data is mocked (single region, hardcoded coordinates)
-- No authentication or authorization
-- UI and API messages are in Portuguese
+- Backend ainda não está containerizado
+- Dados do mapa são mockados (região única com coordenadas fixas)
+- Sem autenticação ou autorização
+- Mensagens da UI e da API estão em português
