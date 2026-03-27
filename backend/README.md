@@ -195,10 +195,3 @@ CREATE TABLE traffic_records (
 | default | habilitado| validate       | off     |
 | dev     | desabilitado| create-drop  | on      |
 
-## Testes
-
-```bash
-mvn test
-```
-
-Os testes de integração utilizam Testcontainers para subir uma instância real do PostgreSQL — nenhuma configuração manual é necessária.

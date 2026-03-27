@@ -88,11 +88,3 @@ Consulte o arquivo `.env` no diretório `backend/` para a lista completa. Variá
 | `APP_CORS_ALLOWED_ORIGINS`  | `http://localhost:5173,http://localhost:5174,...`     | Origens permitidas pelo CORS       |
 | `VITE_API_BASE_URL`         | `http://localhost:8080/api`                          | URL base da API no frontend        |
 
-## Status do Projeto
-
-O projeto encontra-se em estágio MVP com desenvolvimento ativo. As funcionalidades principais estão integradas de ponta a ponta. Limitações conhecidas:
-
-- Backend ainda não está containerizado
-- Dados do mapa são mockados (região única com coordenadas fixas)
-- Sem autenticação ou autorização
-- Mensagens da UI e da API estão em português
