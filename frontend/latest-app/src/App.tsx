@@ -1,13 +1,14 @@
 import { startTransition, useDeferredValue, useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { CircleMarker, MapContainer, Popup, TileLayer } from "react-leaflet";
+import { MapContainer, Polyline, Popup, TileLayer } from "react-leaflet";
 import {
   API_BASE_URL,
   ApiError,
   createTrafficRecord,
   generateSimulation,
   getExport,
+  getStreets,
   getTrafficInsights,
   getTrafficMap,
   getTrafficRecords,
@@ -15,8 +16,10 @@ import {
 } from "./lib/api";
 import type {
   CreateTrafficRecordRequest,
+  MapFeatureCollection,
   MapPoint,
   SimulationRequest,
+  StreetOption,
   TrafficInsightResponse,
   TrafficRecord,
   TrafficStatsResponse
@@ -28,7 +31,7 @@ type DashboardState = {
   byWeekday: TrafficStatsResponse;
   byRoadType: TrafficStatsResponse;
   insights: TrafficInsightResponse;
-  mapPoints: MapPoint[];
+  mapData: MapFeatureCollection;
 };
 
 type ChartCardProps = {
@@ -50,7 +53,7 @@ const recordTemplate: CreateTrafficRecordRequest = {
   vehicleVolume: 140,
   eventType: "",
   weather: "",
-  region: "DEFAULT_REGION"
+  streetOsmWayId: 0
 };
 
 const simulationTemplate: SimulationRequest = {
@@ -125,8 +128,8 @@ function getAverageVolume(records: TrafficRecord[]) {
   return Math.round(records.reduce((sum, record) => sum + record.vehicleVolume, 0) / records.length);
 }
 
-function getUniqueRegions(records: TrafficRecord[]) {
-  return new Set(records.map((record) => record.region).filter(Boolean)).size;
+function getUniqueStreets(records: TrafficRecord[]) {
+  return new Set(records.map((record) => record.streetOsmWayId).filter(Boolean)).size;
 }
 
 function getLatestTimestamp(records: TrafficRecord[]) {
@@ -195,6 +198,65 @@ function ChartCard({ eyebrow, title, tone, stats, chart }: ChartCardProps) {
   );
 }
 
+type TrafficMapCardProps = {
+  eyebrow: string;
+  title: string;
+  mapData: MapFeatureCollection;
+  emptyText: string;
+};
+
+function toLeafletPositions(point: MapPoint) {
+  return point.geometry.coordinates.map(([lng, lat]) => [lat, lng] as [number, number]);
+}
+
+function getMapCenter(mapData: MapFeatureCollection): [number, number] {
+  const first = mapData.features[0];
+  if (!first || first.geometry.coordinates.length === 0) {
+    return [-23.5505, -46.6333];
+  }
+
+  const [lng, lat] = first.geometry.coordinates[0];
+  return [lat, lng];
+}
+
+function TrafficMapCard({ eyebrow, title, mapData, emptyText }: TrafficMapCardProps) {
+  return (
+    <section className="card map-card reveal reveal-4">
+      <div className="section-heading">
+        <p>{eyebrow}</p>
+        <h2>{title}</h2>
+      </div>
+      {mapData.features.length === 0 ? (
+        <p className="map-empty">{emptyText}</p>
+      ) : (
+        <div className="map-shell">
+          <MapContainer center={getMapCenter(mapData)} zoom={12} scrollWheelZoom={false} zoomControl={true}>
+            <TileLayer
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            />
+            {mapData.features.map((point) => (
+              <Polyline
+                key={`${point.properties.recordId}-${point.properties.streetId}`}
+                positions={toLeafletPositions(point)}
+                pathOptions={{ color: point.properties.color, weight: 6, opacity: 0.8 }}
+              >
+                <Popup>
+                  <strong>{point.properties.streetName}</strong>
+                  <br />
+                  Volume: {point.properties.vehicleVolume}
+                  <br />
+                  Nível: {point.properties.trafficLevel}
+                </Popup>
+              </Polyline>
+            ))}
+          </MapContainer>
+        </div>
+      )}
+    </section>
+  );
+}
+
 export default function App() {
   const [dashboard, setDashboard] = useState<DashboardState>({
     records: [],
@@ -202,8 +264,10 @@ export default function App() {
     byWeekday: emptyStats,
     byRoadType: emptyStats,
     insights: emptyInsights,
-    mapPoints: []
+    mapData: { type: "FeatureCollection", features: [] }
   });
+  const [streets, setStreets] = useState<StreetOption[]>([]);
+  const [selectedRecordIds, setSelectedRecordIds] = useState<string[]>([]);
   const [recordForm, setRecordForm] = useState<CreateTrafficRecordRequest>(recordTemplate);
   const [simulationForm, setSimulationForm] = useState<SimulationRequest>(simulationTemplate);
   const [tableQuery, setTableQuery] = useState("");
@@ -214,22 +278,22 @@ export default function App() {
   const [activeView, setActiveView] = useState<ViewMode>("home");
   const deferredQuery = useDeferredValue(tableQuery);
 
-  async function refreshDashboard() {
+  async function refreshDashboard(recordIds: string[] = selectedRecordIds) {
     setLoading(true);
     setError(null);
 
     try {
-      const [records, byHour, byWeekday, byRoadType, insights, mapPoints] = await Promise.all([
+      const [records, byHour, byWeekday, byRoadType, insights, mapData] = await Promise.all([
         getTrafficRecords(),
-        getTrafficStats("hour"),
-        getTrafficStats("weekday"),
-        getTrafficStats("roadType"),
-        getTrafficInsights(),
-        getTrafficMap()
+        getTrafficStats("hour", recordIds),
+        getTrafficStats("weekday", recordIds),
+        getTrafficStats("roadType", recordIds),
+        getTrafficInsights(recordIds),
+        getTrafficMap(recordIds)
       ]);
 
       startTransition(() => {
-        setDashboard({ records, byHour, byWeekday, byRoadType, insights, mapPoints });
+        setDashboard({ records, byHour, byWeekday, byRoadType, insights, mapData });
       });
 
       setStatusMessage(`Conexão ativa estabelecida com ${API_BASE_URL}.`);
@@ -244,7 +308,20 @@ export default function App() {
   }
 
   useEffect(() => {
-    void refreshDashboard();
+    void (async () => {
+      try {
+        const loadedStreets = await getStreets();
+        setStreets(loadedStreets);
+        setRecordForm((current) => ({
+          ...current,
+          streetOsmWayId: current.streetOsmWayId || loadedStreets[0]?.osmWayId || 0
+        }));
+      } catch (caughtError) {
+        const message = caughtError instanceof ApiError ? caughtError.message : "Não foi possível carregar as ruas.";
+        setError(message);
+      }
+      await refreshDashboard([]);
+    })();
   }, []);
 
   async function handleRecordSubmit(event: FormEvent<HTMLFormElement>) {
@@ -303,21 +380,63 @@ export default function App() {
     }
   }
 
+  async function applySelection(nextIds: string[]) {
+    setSelectedRecordIds(nextIds);
+    await refreshDashboard(nextIds);
+  }
+
+  function isRecordSelected(recordId: string) {
+    return selectedRecordIds.includes(recordId);
+  }
+
+  async function toggleRecordSelection(recordId: string) {
+    const nextIds = isRecordSelected(recordId)
+      ? selectedRecordIds.filter((id) => id !== recordId)
+      : [...selectedRecordIds, recordId];
+    await applySelection(nextIds);
+  }
+
+  async function toggleAllFilteredSelection() {
+    const filteredIds = filteredRecords.map((record) => record.id);
+    if (filteredIds.length === 0) {
+      return;
+    }
+
+    const allSelected = filteredIds.every((id) => selectedRecordIds.includes(id));
+    const nextIds = allSelected
+      ? selectedRecordIds.filter((id) => !filteredIds.includes(id))
+      : Array.from(new Set([...selectedRecordIds, ...filteredIds]));
+    await applySelection(nextIds);
+  }
+
+  async function clearSelection() {
+    await applySelection([]);
+  }
+
   const filteredRecords = dashboard.records.filter((record) => {
     const query = deferredQuery.trim().toLowerCase();
     if (!query) {
       return true;
     }
 
-    return [record.roadType, record.region, record.weather, record.eventType]
+    return [record.roadType, record.streetName, record.weather, record.eventType]
       .filter(Boolean)
       .some((value) => String(value).toLowerCase().includes(query));
   });
 
+  const selectedRecords =
+    selectedRecordIds.length === 0
+      ? dashboard.records
+      : dashboard.records.filter((record) => selectedRecordIds.includes(record.id));
+  const analyticsContextLabel =
+    selectedRecordIds.length === 0
+      ? "Visualizando base completa."
+      : `Visualizando ${selectedRecordIds.length} registros selecionados.`;
+
   const summaryCards = [
     {
       label: "Veículos capturados",
-      value: formatCompactNumber(dashboard.records.reduce((sum, record) => sum + record.vehicleVolume, 0)),
+      value: formatCompactNumber(selectedRecords.reduce((sum, record) => sum + record.vehicleVolume, 0)),
       meta: "Volume acumulado em todos os registros"
     },
     {
@@ -326,13 +445,13 @@ export default function App() {
       meta: "Maior concentração nos dados atuais"
     },
     {
-      label: "Regiões mapeadas",
-      value: String(getUniqueRegions(dashboard.records)),
+      label: "Ruas mapeadas",
+      value: String(getUniqueStreets(selectedRecords)),
       meta: "Corredores monitorados com tráfego"
     },
     {
       label: "Carga média",
-      value: formatCompactNumber(getAverageVolume(dashboard.records)),
+      value: formatCompactNumber(getAverageVolume(selectedRecords)),
       meta: "Veículos por registro capturado"
     }
   ];
@@ -448,7 +567,7 @@ export default function App() {
               </div>
               <div className="status-box" aria-live="polite">
                 <strong>Situação</strong>
-                <p>{error ?? statusMessage}</p>
+                <p>{error ?? `${statusMessage} ${analyticsContextLabel}`}</p>
               </div>
             </section>
 
@@ -458,34 +577,12 @@ export default function App() {
               <ChartCard eyebrow="Mistura viária" title="Divisão por tipo de via" tone="ember" chart="bar" stats={dashboard.byRoadType} />
             </div>
 
-            <section className="card map-card reveal reveal-4">
-              <div className="section-heading">
-                <p>Visão da rede</p>
-                <h2>Monitor do mapa de tráfego</h2>
-              </div>
-              <div className="map-shell">
-                <MapContainer center={[-23.5505, -46.6333]} zoom={11} scrollWheelZoom={false} zoomControl={true}>
-                  <TileLayer
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                  />
-                  {dashboard.mapPoints.map((point) => (
-                    <CircleMarker
-                      key={`${point.region}-${point.lat}-${point.lng}`}
-                      center={[point.lat, point.lng]}
-                      radius={10}
-                      pathOptions={{ color: "#123c63", fillColor: "#f25c3a", fillOpacity: 0.78, weight: 2 }}
-                    >
-                      <Popup>
-                        <strong>{point.region}</strong>
-                        <br />
-                        {point.lat.toFixed(4)}, {point.lng.toFixed(4)}
-                      </Popup>
-                    </CircleMarker>
-                  ))}
-                </MapContainer>
-              </div>
-            </section>
+            <TrafficMapCard
+              eyebrow="Visão da rede"
+              title="Monitor do mapa de tráfego"
+              mapData={dashboard.mapData}
+              emptyText="Selecione registros em “Formulários e registros” para visualizar as ruas coloridas."
+            />
 
             <section className="card insight-card reveal reveal-4">
               <div className="section-heading section-heading--centered">
@@ -568,15 +665,23 @@ export default function App() {
                     />
                   </label>
                   <label>
-                    Região
-                    <input
-                      type="text"
-                      value={recordForm.region}
+                    Rua
+                    <select
+                      value={recordForm.streetOsmWayId}
                       onChange={(event) =>
-                        setRecordForm((current) => ({ ...current, region: event.target.value }))
+                        setRecordForm((current) => ({ ...current, streetOsmWayId: Number(event.target.value) }))
                       }
-                      placeholder="REGIAO_PADRAO"
-                    />
+                    >
+                      {streets.length === 0 ? (
+                        <option value={0}>Nenhuma rua cadastrada</option>
+                      ) : (
+                        streets.map((street) => (
+                          <option key={street.id} value={street.osmWayId}>
+                            {street.name}
+                          </option>
+                        ))
+                      )}
+                    </select>
                   </label>
                   <label>
                     Tipo de evento
@@ -600,9 +705,19 @@ export default function App() {
                       placeholder="Céu limpo, chuva, neblina"
                     />
                   </label>
-                  <button type="submit" className="primary-button" disabled={busyAction === "record"}>
+                  <button
+                    type="submit"
+                    className="primary-button"
+                    disabled={busyAction === "record" || streets.length === 0 || !recordForm.streetOsmWayId}
+                  >
                     {busyAction === "record" ? "Salvando registro..." : "Salvar registro"}
                   </button>
+                  {streets.length === 0 ? (
+                    <p className="form-hint">
+                      Nenhuma rua importada ainda. Configure `APP_STREETS_IMPORT_ENABLED=true` e
+                      `APP_STREETS_IMPORT_GEOJSON_PATH` no backend.
+                    </p>
+                  ) : null}
                 </form>
               </section>
 
@@ -644,13 +759,25 @@ export default function App() {
                   <button
                     type="submit"
                     className="ghost-button ghost-button--dark"
-                    disabled={busyAction === "simulation"}
+                    disabled={busyAction === "simulation" || streets.length === 0}
                   >
                     {busyAction === "simulation" ? "Gerando..." : "Executar simulação"}
                   </button>
+                  {streets.length === 0 ? (
+                    <p className="form-hint">
+                      A simulação requer ruas reais importadas no banco antes da execução.
+                    </p>
+                  ) : null}
                 </form>
               </section>
             </section>
+
+            <TrafficMapCard
+              eyebrow="Mapa operacional"
+              title="Ruas selecionadas"
+              mapData={dashboard.mapData}
+              emptyText="Selecione registros abaixo para plotar as ruas nesta visão e também na página de insights."
+            />
 
             <section className="card table-card reveal reveal-5">
               <div className="table-header">
@@ -664,19 +791,35 @@ export default function App() {
                     type="search"
                     value={tableQuery}
                     onChange={(event) => setTableQuery(event.target.value)}
-                    placeholder="Buscar por região, tipo de via, clima"
+                    placeholder="Buscar por rua, tipo de via, clima"
                   />
                 </label>
+              </div>
+
+              <div className="table-actions">
+                <button type="button" className="ghost-button" onClick={() => void toggleAllFilteredSelection()}>
+                  Selecionar/limpar filtrados
+                </button>
+                <button
+                  type="button"
+                  className="ghost-button"
+                  onClick={() => void clearSelection()}
+                  disabled={selectedRecordIds.length === 0}
+                >
+                  Limpar seleção
+                </button>
+                <span className="table-selection-count">{selectedRecordIds.length} selecionado(s)</span>
               </div>
 
               <div className="table-scroll">
                 <table>
                   <thead>
                     <tr>
+                      <th>Selecionar</th>
                       <th>Data e hora</th>
                       <th>Via</th>
                       <th>Volume</th>
-                      <th>Região</th>
+                      <th>Rua</th>
                       <th>Clima</th>
                       <th>Evento</th>
                     </tr>
@@ -684,17 +827,25 @@ export default function App() {
                   <tbody>
                     {filteredRecords.length === 0 ? (
                       <tr>
-                        <td colSpan={6} className="empty-row">
+                        <td colSpan={7} className="empty-row">
                           Nenhum registro corresponde ao filtro atual.
                         </td>
                       </tr>
                     ) : (
                       filteredRecords.map((record) => (
                         <tr key={record.id}>
+                          <td>
+                            <input
+                              type="checkbox"
+                              checked={isRecordSelected(record.id)}
+                              onChange={() => void toggleRecordSelection(record.id)}
+                              aria-label={`Selecionar registro ${record.id}`}
+                            />
+                          </td>
                           <td>{formatDateTime(record.timestamp)}</td>
                           <td>{formatLabel(record.roadType)}</td>
                           <td>{record.vehicleVolume}</td>
-                          <td>{record.region ?? "Não atribuída"}</td>
+                          <td>{record.streetName ?? "Não atribuída"}</td>
                           <td>{record.weather ?? "n/d"}</td>
                           <td>{record.eventType ?? "n/d"}</td>
                         </tr>

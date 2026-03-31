@@ -7,7 +7,9 @@ export interface TrafficRecord {
   vehicleVolume: number;
   eventType: string | null;
   weather: string | null;
-  region: string | null;
+  streetId: string | null;
+  streetOsmWayId: number | null;
+  streetName: string | null;
 }
 
 export interface CreateTrafficRecordRequest {
@@ -16,7 +18,7 @@ export interface CreateTrafficRecordRequest {
   vehicleVolume: number;
   eventType: string;
   weather: string;
-  region: string;
+  streetOsmWayId: number;
 }
 
 export interface TrafficStatsResponse {
@@ -34,7 +36,29 @@ export interface SimulationRequest {
 }
 
 export interface MapPoint {
-  region: string;
-  lat: number;
-  lng: number;
+  type: "Feature";
+  properties: {
+    recordId: string;
+    streetId: string;
+    streetOsmWayId: number;
+    streetName: string;
+    vehicleVolume: number;
+    trafficLevel: "LOW" | "MEDIUM" | "HIGH";
+    color: string;
+  };
+  geometry: {
+    type: "LineString";
+    coordinates: [number, number][];
+  };
+}
+
+export interface MapFeatureCollection {
+  type: "FeatureCollection";
+  features: MapPoint[];
+}
+
+export interface StreetOption {
+  id: string;
+  osmWayId: number;
+  name: string;
 }
