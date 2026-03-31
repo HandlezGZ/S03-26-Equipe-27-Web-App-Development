@@ -38,3 +38,5 @@ coverage/
 .cache/
 .tmp/
 tmp/
+/data/*.geojson
+/data/*.json

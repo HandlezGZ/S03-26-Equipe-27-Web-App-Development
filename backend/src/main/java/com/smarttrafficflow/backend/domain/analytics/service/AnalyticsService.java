@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 @Service
 public class AnalyticsService {
@@ -24,8 +25,10 @@ public class AnalyticsService {
         this.trafficRecordService = trafficRecordService;
     }
 
-    public TrafficStatsResponse getStats(String groupBy) {
-        List<TrafficRecord> records = trafficRecordService.findAllEntities();
+    public TrafficStatsResponse getStats(String groupBy, List<UUID> recordIds) {
+        List<TrafficRecord> records = (recordIds == null || recordIds.isEmpty())
+                ? trafficRecordService.findAllEntities()
+                : trafficRecordService.findEntitiesByIds(recordIds);
         log.info("Analytics requested with groupBy={} using {} records", groupBy, records.size());
         Map<String, Integer> aggregated = new LinkedHashMap<>();
 

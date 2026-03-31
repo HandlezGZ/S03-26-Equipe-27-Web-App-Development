@@ -23,7 +23,7 @@ public class ExportService {
         List<TrafficRecordResponse> records = trafficRecordService.findAll();
         log.info("Exporting {} records to CSV", records.size());
         StringBuilder sb = new StringBuilder();
-        sb.append("id,timestamp,roadType,vehicleVolume,eventType,weather,region\n");
+        sb.append("id,timestamp,roadType,vehicleVolume,eventType,weather,streetId,streetOsmWayId,streetName\n");
 
         for (TrafficRecordResponse record : records) {
             sb.append(record.id()).append(',')
@@ -32,7 +32,9 @@ public class ExportService {
                     .append(record.vehicleVolume()).append(',')
                     .append(safe(record.eventType())).append(',')
                     .append(safe(record.weather())).append(',')
-                    .append(safe(record.region()))
+                    .append(record.streetId()).append(',')
+                    .append(record.streetOsmWayId()).append(',')
+                    .append(safe(record.streetName()))
                     .append('\n');
         }
 
