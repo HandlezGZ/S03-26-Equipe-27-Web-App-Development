@@ -12,6 +12,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 @Service
 public class InsightService {
@@ -24,8 +25,10 @@ public class InsightService {
         this.trafficRecordService = trafficRecordService;
     }
 
-    public TrafficInsightResponse generateInsights() {
-        List<TrafficRecord> records = trafficRecordService.findAllEntities();
+    public TrafficInsightResponse generateInsights(List<UUID> recordIds) {
+        List<TrafficRecord> records = (recordIds == null || recordIds.isEmpty())
+                ? trafficRecordService.findAllEntities()
+                : trafficRecordService.findEntitiesByIds(recordIds);
         List<String> insights = new ArrayList<>();
         log.info("Generating insights from {} records", records.size());
 

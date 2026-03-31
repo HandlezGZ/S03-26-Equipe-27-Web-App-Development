@@ -9,6 +9,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+import java.util.UUID;
+
 @RestController
 @RequestMapping("/api/traffic-stats")
 public class AnalyticsController {
@@ -22,9 +25,10 @@ public class AnalyticsController {
     }
 
     @GetMapping
-    public TrafficStatsResponse getStats(@RequestParam String groupBy) {
-        log.info("GET /api/traffic-stats - requested groupBy={}", groupBy);
-        TrafficStatsResponse response = analyticsService.getStats(groupBy);
+    public TrafficStatsResponse getStats(@RequestParam String groupBy, @RequestParam(required = false) List<UUID> recordIds) {
+        int filterSize = recordIds == null ? 0 : recordIds.size();
+        log.info("GET /api/traffic-stats - requested groupBy={} with {} selected recordIds", groupBy, filterSize);
+        TrafficStatsResponse response = analyticsService.getStats(groupBy, recordIds);
         log.info("GET /api/traffic-stats - returning {} aggregated labels for groupBy={}",
                 response.labels().size(), groupBy);
         return response;
