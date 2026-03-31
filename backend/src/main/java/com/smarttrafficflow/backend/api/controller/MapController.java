@@ -1,5 +1,6 @@
 package com.smarttrafficflow.backend.api.controller;
 
+import com.smarttrafficflow.backend.api.dto.RecordIdsFilterRequest;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -8,6 +9,8 @@ import com.smarttrafficflow.backend.domain.trafficrecords.service.TrafficRecordS
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -38,14 +41,23 @@ public class MapController {
 
     @GetMapping
     public Map<String, Object> getMapData(@RequestParam(required = false) List<UUID> recordIds) {
+        return buildMapResponse(recordIds, "GET /api/traffic-map");
+    }
+
+    @PostMapping("/filter")
+    public Map<String, Object> getMapDataFiltered(@RequestBody RecordIdsFilterRequest request) {
+        return buildMapResponse(request.recordIds(), "POST /api/traffic-map/filter");
+    }
+
+    private Map<String, Object> buildMapResponse(List<UUID> recordIds, String source) {
         if (recordIds == null || recordIds.isEmpty()) {
-            log.info("GET /api/traffic-map - no recordIds selected, returning empty FeatureCollection");
+            log.info("{} - no recordIds selected, returning empty FeatureCollection", source);
             return Map.of("type", "FeatureCollection", "features", List.of());
         }
 
         List<TrafficRecordRepository.TrafficMapFeatureView> featuresView = trafficRecordService.findMapFeaturesByRecordIds(recordIds);
         List<Map<String, Object>> features = featuresView.stream().map(this::toFeature).toList();
-        log.info("GET /api/traffic-map - returning {} features from {} selected records", features.size(), recordIds.size());
+        log.info("{} - returning {} features from {} selected records", source, features.size(), recordIds.size());
         return Map.of("type", "FeatureCollection", "features", features);
     }
 

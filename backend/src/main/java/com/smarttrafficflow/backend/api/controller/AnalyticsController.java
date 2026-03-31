@@ -1,10 +1,14 @@
 package com.smarttrafficflow.backend.api.controller;
 
+import com.smarttrafficflow.backend.api.dto.TrafficStatsFilterRequest;
 import com.smarttrafficflow.backend.api.dto.TrafficStatsResponse;
 import com.smarttrafficflow.backend.domain.analytics.service.AnalyticsService;
+import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -31,6 +35,17 @@ public class AnalyticsController {
         TrafficStatsResponse response = analyticsService.getStats(groupBy, recordIds);
         log.info("GET /api/traffic-stats - returning {} aggregated labels for groupBy={}",
                 response.labels().size(), groupBy);
+        return response;
+    }
+
+    @PostMapping("/filter")
+    public TrafficStatsResponse getStatsFiltered(@Valid @RequestBody TrafficStatsFilterRequest request) {
+        int filterSize = request.recordIds() == null ? 0 : request.recordIds().size();
+        log.info("POST /api/traffic-stats/filter - requested groupBy={} with {} selected recordIds",
+                request.groupBy(), filterSize);
+        TrafficStatsResponse response = analyticsService.getStats(request.groupBy(), request.recordIds());
+        log.info("POST /api/traffic-stats/filter - returning {} aggregated labels for groupBy={}",
+                response.labels().size(), request.groupBy());
         return response;
     }
 }
