@@ -113,6 +113,24 @@ describe("App", () => {
     await waitFor(() => expect(capturedStreetOsmWayId).toBe(101));
   });
 
+  it("shows record creation errors without breaking the workspace", async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.post("http://localhost:8080/api/traffic-records", () =>
+        HttpResponse.json({ message: "Dados inválidos" }, { status: 400 })
+      )
+    );
+
+    render(<App />);
+
+    await user.click(await screen.findByRole("button", { name: /Formulários e registros/i }));
+    await user.type(screen.getByRole("searchbox", { name: /Rua/i }), "Aven");
+    await user.click(await screen.findByRole("button", { name: /Avenida Central/i }));
+    await user.click(await screen.findByRole("button", { name: /Salvar registro/i }));
+
+    expect(await screen.findByText(/Dados inválidos/i)).toBeInTheDocument();
+  });
+
   it("shows the insight placeholder when the backend returns no insights", async () => {
     server.use(http.get("http://localhost:8080/api/traffic-insights", () => HttpResponse.json({ insights: [] })));
 
@@ -187,6 +205,15 @@ describe("App", () => {
     await user.click(await screen.findByRole("button", { name: /Executar simulação/i }));
 
     await waitFor(() => expect(capturedRecordsToGenerate).toBe(18));
+  });
+
+  it("keeps the dashboard stable when the backend returns no records", async () => {
+    server.use(http.get("http://localhost:8080/api/traffic-records", () => HttpResponse.json([])));
+
+    render(<App />);
+
+    expect(await screen.findByText(/Conectado/i)).toBeInTheDocument();
+    expect(screen.getByText(/Veículos capturados/i)).toBeInTheDocument();
   });
 
   it("exports csv", async () => {
