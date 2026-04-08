@@ -1,35 +1,36 @@
-global.ResizeObserver = class ResizeObserver {
-  observe() {}
-  unobserve() {}
-  disconnect() {}
-};import "@testing-library/jest-dom";
-import { afterEach, beforeAll, afterAll, vi } from "vitest";
+import "@testing-library/jest-dom/vitest";
 import { cleanup } from "@testing-library/react";
+import { afterAll, afterEach, beforeAll, vi } from "vitest";
 import { server } from "./mocks/server";
 
-// ─── MSW — mock de API ────────────────────────────────────────────────────────
-beforeAll(() => server.listen({ onUnhandledRequest: "warn" }));
+beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
 afterEach(() => {
-  server.resetHandlers();
   cleanup();
+  server.resetHandlers();
+  vi.restoreAllMocks();
 });
 afterAll(() => server.close());
 
-// ─── Mock do Leaflet (usa APIs de DOM que não existem no jsdom) ───────────────
-vi.mock("leaflet", () => ({ default: {} }));
+Object.defineProperty(window, "matchMedia", {
+  writable: true,
+  value: vi.fn().mockImplementation((query: string) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn()
+  }))
+});
 
-vi.mock("react-leaflet", () => ({
-  MapContainer: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="map-container">{children}</div>
-  ),
-  TileLayer: () => null,
-  CircleMarker: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="circle-marker">{children}</div>
-  ),
-  Popup: ({ children }: { children: React.ReactNode }) => (
-    <div>{children}</div>
-  )
-}));
+Object.defineProperty(URL, "createObjectURL", {
+  writable: true,
+  value: vi.fn(() => "blob:test")
+});
 
-// ─── Variável de ambiente da API ──────────────────────────────────────────────
-vi.stubEnv("VITE_API_BASE_URL", "http://localhost:8080/api");
+Object.defineProperty(URL, "revokeObjectURL", {
+  writable: true,
+  value: vi.fn()
+});

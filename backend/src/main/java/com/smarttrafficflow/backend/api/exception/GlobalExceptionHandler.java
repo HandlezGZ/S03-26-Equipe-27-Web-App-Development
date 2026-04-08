@@ -47,6 +47,19 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
 
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ApiErrorResponse> handleIllegalState(IllegalStateException ex) {
+        log.warn("Invalid state error: {}", ex.getMessage());
+        ApiErrorResponse response = new ApiErrorResponse(
+                "INVALID_STATE",
+                ex.getMessage(),
+                List.of(),
+                OffsetDateTime.now()
+        );
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiErrorResponse> handleGeneric(Exception ex) {
         log.error("Unexpected internal error", ex);

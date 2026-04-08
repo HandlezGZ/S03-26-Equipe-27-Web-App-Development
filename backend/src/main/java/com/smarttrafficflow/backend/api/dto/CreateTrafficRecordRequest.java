@@ -3,6 +3,7 @@ package com.smarttrafficflow.backend.api.dto;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 
 import java.time.OffsetDateTime;
 
@@ -12,6 +13,6 @@ public record CreateTrafficRecordRequest(
         @NotNull @Min(0) Integer vehicleVolume,
         String eventType,
         String weather,
-        String region
+        @NotNull @Positive Long streetOsmWayId
 ) {
 }

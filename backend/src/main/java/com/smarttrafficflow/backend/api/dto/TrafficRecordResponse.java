@@ -10,6 +10,8 @@ public record TrafficRecordResponse(
         Integer vehicleVolume,
         String eventType,
         String weather,
-        String region
+        UUID streetId,
+        Long streetOsmWayId,
+        String streetName
 ) {
 }

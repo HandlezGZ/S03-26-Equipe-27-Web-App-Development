@@ -1,9 +1,12 @@
 package com.smarttrafficflow.backend.domain.trafficrecords.entity;
 
+import com.smarttrafficflow.backend.domain.streets.entity.Street;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import org.hibernate.annotations.UuidGenerator;
 
@@ -34,8 +37,9 @@ public class TrafficRecord {
     @Column
     private String weather;
 
-    @Column
-    private String region;
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "street_id", nullable = false)
+    private Street street;
 
     public UUID getId() {
         return id;
@@ -85,11 +89,11 @@ public class TrafficRecord {
         this.weather = weather;
     }
 
-    public String getRegion() {
-        return region;
+    public Street getStreet() {
+        return street;
     }
 
-    public void setRegion(String region) {
-        this.region = region;
+    public void setStreet(Street street) {
+        this.street = street;
     }
 }

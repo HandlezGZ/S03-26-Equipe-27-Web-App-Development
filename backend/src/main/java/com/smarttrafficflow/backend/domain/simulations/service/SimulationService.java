@@ -3,6 +3,7 @@ package com.smarttrafficflow.backend.domain.simulations.service;
 import com.smarttrafficflow.backend.api.dto.CreateTrafficRecordRequest;
 import com.smarttrafficflow.backend.api.dto.SimulationRequest;
 import com.smarttrafficflow.backend.api.dto.TrafficRecordResponse;
+import com.smarttrafficflow.backend.domain.streets.service.StreetService;
 import com.smarttrafficflow.backend.domain.trafficrecords.service.TrafficRecordService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,10 +23,12 @@ public class SimulationService {
     private static final String[] WEATHER_TYPES = {"SUNNY", "RAIN", "CLOUDY"};
 
     private final TrafficRecordService trafficRecordService;
+    private final StreetService streetService;
     private final Random random = new Random();
 
-    public SimulationService(TrafficRecordService trafficRecordService) {
+    public SimulationService(TrafficRecordService trafficRecordService, StreetService streetService) {
         this.trafficRecordService = trafficRecordService;
+        this.streetService = streetService;
     }
 
     public List<TrafficRecordResponse> generate(SimulationRequest request) {
@@ -45,7 +48,7 @@ public class SimulationService {
                     volume,
                     request.scenarioName(),
                     weather,
-                    "DEFAULT_REGION"
+                    streetService.getRandomStreetOsmWayId()
             );
 
             generated.add(trafficRecordService.create(createRequest));
