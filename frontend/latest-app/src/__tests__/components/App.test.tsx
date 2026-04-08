@@ -43,6 +43,23 @@ describe("App", () => {
     });
   });
 
+  it("starts on the insights view and can switch back to it", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    const insightsButton = await screen.findByRole("button", { name: /Página de insights/i });
+    const workspaceButton = screen.getByRole("button", { name: /Formulários e registros/i });
+
+    expect(insightsButton).toHaveAttribute("aria-pressed", "true");
+    expect(workspaceButton).toHaveAttribute("aria-pressed", "false");
+
+    await user.click(workspaceButton);
+    expect(await screen.findByText(/Adicionar registro de tráfego/i)).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /Página de insights/i }));
+    expect(await screen.findByText(/Veículos capturados/i)).toBeInTheDocument();
+  });
+
   it("switches to the workspace view", async () => {
     const user = userEvent.setup();
     render(<App />);
@@ -96,6 +113,14 @@ describe("App", () => {
     await waitFor(() => expect(capturedStreetOsmWayId).toBe(101));
   });
 
+  it("shows the insight placeholder when the backend returns no insights", async () => {
+    server.use(http.get("http://localhost:8080/api/traffic-insights", () => HttpResponse.json({ insights: [] })));
+
+    render(<App />);
+
+    expect(await screen.findByText(/Aguardando registros suficientes/i)).toBeInTheDocument();
+  });
+
   it("applies record selection and refreshes filtered analytics", async () => {
     const user = userEvent.setup();
     render(<App />);
@@ -106,6 +131,31 @@ describe("App", () => {
     await user.click(screen.getByRole("button", { name: /Aplicar seleção/i }));
 
     expect(await screen.findByText(/1 selecionado\(s\), 1 aplicado\(s\)/i)).toBeInTheDocument();
+  });
+
+  it("filters the records table by current street data", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(await screen.findByRole("button", { name: /Formulários e registros/i }));
+
+    const filterInput = await screen.findByRole("searchbox", { name: /Filtro/i });
+    await user.type(filterInput, "Rodovia Norte");
+
+    expect(screen.getByText(/Rodovia Norte/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Avenida Central/i)).not.toBeInTheDocument();
+  });
+
+  it("shows an empty-state row when the table filter matches nothing", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(await screen.findByRole("button", { name: /Formulários e registros/i }));
+
+    const filterInput = await screen.findByRole("searchbox", { name: /Filtro/i });
+    await user.type(filterInput, "Sem correspondencia");
+
+    expect(await screen.findByText(/Nenhum registro corresponde ao filtro atual/i)).toBeInTheDocument();
   });
 
   it("runs a simulation", async () => {
@@ -150,6 +200,20 @@ describe("App", () => {
     expect(await screen.findByText(/Exportação preparada no formato CSV/i)).toBeInTheDocument();
     expect(URL.createObjectURL).toHaveBeenCalled();
     expect(click).toHaveBeenCalledTimes(1);
+  });
+
+  it("renders the JSON export action", async () => {
+    render(<App />);
+
+    expect(await screen.findByRole("button", { name: /Exportar JSON/i })).toBeInTheDocument();
+  });
+
+  it("renders accessibility anchors used by the current layout", async () => {
+    render(<App />);
+
+    expect(await screen.findByText(/Pular para o conteúdo/i)).toBeInTheDocument();
+    expect(document.getElementById("main-content")).not.toBeNull();
+    expect(document.querySelectorAll("[aria-live='polite']").length).toBeGreaterThan(0);
   });
 
   it("shows backend errors without crashing", async () => {
