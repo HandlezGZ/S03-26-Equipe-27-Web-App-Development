@@ -1,34 +1,38 @@
 import { http, HttpResponse } from "msw";
 import type {
-  TrafficRecord,
-  TrafficStatsResponse,
+  MapFeatureCollection,
+  StreetSearchResponse,
   TrafficInsightResponse,
-  MapPoint
+  TrafficRecord,
+  TrafficStatsResponse
 } from "../../types/api";
 
 const BASE = "http://localhost:8080/api";
 
-// ─── Dados reutilizáveis nos testes ───────────────────────────────────────────
-
-export const mockRecord1: TrafficRecord = {
-  id: "00000000-0000-0000-0000-000000000001",
-  timestamp: "2024-06-17T08:00:00+00:00",
-  roadType: "ARTERIAL",
-  vehicleVolume: 120,
-  eventType: "RUSH_HOUR",
-  weather: "SUNNY",
-  region: "CENTRO"
-};
-
-export const mockRecord2: TrafficRecord = {
-  id: "00000000-0000-0000-0000-000000000002",
-  timestamp: "2024-06-17T17:30:00+00:00",
-  roadType: "HIGHWAY",
-  vehicleVolume: 250,
-  eventType: null,
-  weather: "RAIN",
-  region: "NORTE"
-};
+export const mockRecords: TrafficRecord[] = [
+  {
+    id: "rec-1",
+    timestamp: "2024-06-17T08:00:00Z",
+    roadType: "ARTERIAL",
+    vehicleVolume: 120,
+    eventType: "RUSH_HOUR",
+    weather: "SUNNY",
+    streetId: "street-1",
+    streetOsmWayId: 101,
+    streetName: "Avenida Central"
+  },
+  {
+    id: "rec-2",
+    timestamp: "2024-06-17T17:30:00Z",
+    roadType: "HIGHWAY",
+    vehicleVolume: 250,
+    eventType: null,
+    weather: "RAIN",
+    streetId: "street-2",
+    streetOsmWayId: 202,
+    streetName: "Rodovia Norte"
+  }
+];
 
 export const mockStats: TrafficStatsResponse = {
   labels: ["08", "17", "12"],
@@ -42,95 +46,137 @@ export const mockInsights: TrafficInsightResponse = {
   ]
 };
 
-export const mockMapPoints: MapPoint[] = [
-  { region: "CENTRO", lat: -23.5430, lng: -46.6393 },
-  { region: "NORTE",  lat: -23.4900, lng: -46.6260 }
-];
+export const mockMapData: MapFeatureCollection = {
+  type: "FeatureCollection",
+  features: [
+    {
+      type: "Feature",
+      properties: {
+        recordId: "rec-1",
+        streetId: "street-1",
+        streetOsmWayId: 101,
+        streetName: "Avenida Central",
+        vehicleVolume: 120,
+        trafficLevel: "MEDIUM",
+        color: "#f25c3a"
+      },
+      geometry: {
+        type: "LineString",
+        coordinates: [
+          [-46.6333, -23.5505],
+          [-46.6321, -23.5512]
+        ]
+      }
+    }
+  ]
+};
 
-// ─── Handlers padrão (happy path) ─────────────────────────────────────────────
+export const mockStreetSearch: StreetSearchResponse = {
+  items: [
+    { id: "street-1", osmWayId: 101, name: "Avenida Central" },
+    { id: "street-2", osmWayId: 202, name: "Rodovia Norte" }
+  ],
+  limit: 20,
+  offset: 0,
+  total: 2
+};
 
 export const handlers = [
-
-  http.get(`${BASE}/traffic-records`, () =>
-    HttpResponse.json([mockRecord1, mockRecord2])
-  ),
-
+  http.get(`${BASE}/traffic-records`, () => HttpResponse.json(mockRecords)),
   http.post(`${BASE}/traffic-records`, async ({ request }) => {
-    const body = await request.json() as Record<string, unknown>;
-    const created: TrafficRecord = {
-      id: "00000000-0000-0000-0000-000000000099",
-      timestamp: body.timestamp as string,
-      roadType: body.roadType as "LOCAL" | "ARTERIAL" | "HIGHWAY",
-      vehicleVolume: body.vehicleVolume as number,
-      eventType: (body.eventType as string) || null,
-      weather:    (body.weather    as string) || null,
-      region:     (body.region     as string) || null
+    const body = (await request.json()) as {
+      timestamp: string;
+      roadType: TrafficRecord["roadType"];
+      vehicleVolume: number;
+      eventType: string;
+      weather: string;
+      streetOsmWayId: number;
     };
-    return HttpResponse.json(created, { status: 201 });
-  }),
 
+    return HttpResponse.json(
+      {
+        id: "rec-created",
+        timestamp: body.timestamp,
+        roadType: body.roadType,
+        vehicleVolume: body.vehicleVolume,
+        eventType: body.eventType || null,
+        weather: body.weather || null,
+        streetId: "street-created",
+        streetOsmWayId: body.streetOsmWayId,
+        streetName: "Avenida Criada"
+      } satisfies TrafficRecord,
+      { status: 201 }
+    );
+  }),
   http.get(`${BASE}/traffic-stats`, ({ request }) => {
-    const url    = new URL(request.url);
-    const groupBy = url.searchParams.get("groupBy");
+    const groupBy = new URL(request.url).searchParams.get("groupBy");
     if (!["hour", "weekday", "roadType"].includes(groupBy ?? "")) {
-      return HttpResponse.json(
-        { code: "INVALID_ARGUMENT", message: "groupBy inválido" },
-        { status: 400 }
-      );
+      return HttpResponse.json({ message: "groupBy inválido" }, { status: 400 });
     }
     return HttpResponse.json(mockStats);
   }),
-
-  http.get(`${BASE}/traffic-insights`, () =>
-    HttpResponse.json(mockInsights)
-  ),
-
-  http.get(`${BASE}/traffic-map`, () =>
-    HttpResponse.json(mockMapPoints)
-  ),
-
-  http.post(`${BASE}/simulations/generate`, async ({ request }) => {
-    const body = await request.json() as { recordsToGenerate: number; scenarioName: string };
-    if (body.recordsToGenerate > 500) {
-      return HttpResponse.json(
-        { code: "VALIDATION_ERROR", message: "Máximo 500" },
-        { status: 400 }
-      );
+  http.post(`${BASE}/traffic-stats/filter`, async ({ request }) => {
+    const body = (await request.json()) as { groupBy?: string; recordIds?: string[] };
+    if (!body.groupBy || !body.recordIds?.length) {
+      return HttpResponse.json({ message: "payload inválido" }, { status: 400 });
     }
-    const generated: TrafficRecord[] = Array.from(
-      { length: body.recordsToGenerate },
-      (_, i) => ({
-        id: `00000000-0000-0000-0000-${String(i).padStart(12, "0")}`,
-        timestamp: new Date().toISOString(),
-        roadType: "LOCAL",
-        vehicleVolume: 100 + i,
-        eventType: body.scenarioName,
-        weather: "SUNNY",
-        region: "DEFAULT_REGION"
-      })
-    );
-    return HttpResponse.json(generated, { status: 201 });
+    return HttpResponse.json(mockStats);
   }),
-
-  http.get(`${BASE}/exports`, ({ request }) => {
-    const url    = new URL(request.url);
-    const format = url.searchParams.get("format");
-    if (format === "csv") {
-      return new HttpResponse(
-        "id,timestamp,roadType,vehicleVolume,eventType,weather,region\n" +
-        "00000000,2024-06-17T08:00:00Z,ARTERIAL,120,RUSH_HOUR,SUNNY,CENTRO\n",
-        { headers: {
-          "Content-Type": "text/plain",
-          "Content-Disposition": "attachment; filename=traffic-data.csv"
-        }}
-      );
+  http.get(`${BASE}/traffic-insights`, () => HttpResponse.json(mockInsights)),
+  http.post(`${BASE}/traffic-insights/filter`, async ({ request }) => {
+    const body = (await request.json()) as { recordIds?: string[] };
+    if (!body.recordIds?.length) {
+      return HttpResponse.json({ message: "payload inválido" }, { status: 400 });
     }
-    if (format === "json") {
-      return HttpResponse.json([{ status: "ok" }]);
+    return HttpResponse.json(mockInsights);
+  }),
+  http.post(`${BASE}/traffic-map/filter`, async ({ request }) => {
+    const body = (await request.json()) as { recordIds?: string[] };
+    if (!body.recordIds?.length) {
+      return HttpResponse.json({ type: "FeatureCollection", features: [] });
+    }
+    return HttpResponse.json(mockMapData);
+  }),
+  http.get(`${BASE}/streets/search`, ({ request }) => {
+    const query = new URL(request.url).searchParams.get("q")?.toLowerCase() ?? "";
+    const items = mockStreetSearch.items.filter((item) => item.name.toLowerCase().includes(query));
+    return HttpResponse.json({ ...mockStreetSearch, items, total: items.length });
+  }),
+  http.post(`${BASE}/simulations/generate`, async ({ request }) => {
+    const body = (await request.json()) as { recordsToGenerate: number; scenarioName: string };
+    if (body.recordsToGenerate > 500) {
+      return HttpResponse.json({ message: "Máximo 500" }, { status: 400 });
     }
     return HttpResponse.json(
-      { code: "INVALID_ARGUMENT", message: "Formato inválido" },
-      { status: 400 }
+      Array.from({ length: body.recordsToGenerate }, (_, index) => ({
+        id: `sim-${index + 1}`,
+        timestamp: "2024-06-18T08:00:00Z",
+        roadType: "LOCAL" as const,
+        vehicleVolume: 80 + index,
+        eventType: body.scenarioName,
+        weather: "SUNNY",
+        streetId: `sim-street-${index + 1}`,
+        streetOsmWayId: 800 + index,
+        streetName: `Rua Simulada ${index + 1}`
+      }))
     );
+  }),
+  http.get(`${BASE}/exports`, ({ request }) => {
+    const format = new URL(request.url).searchParams.get("format");
+    if (format === "csv") {
+      return new HttpResponse("id,timestamp\nrec-1,2024-06-17T08:00:00Z\n", {
+        headers: {
+          "Content-Type": "text/csv"
+        }
+      });
+    }
+    if (format === "json") {
+      return new HttpResponse(JSON.stringify([{ id: "rec-1" }]), {
+        headers: {
+          "Content-Type": "application/json"
+        }
+      });
+    }
+    return HttpResponse.json({ message: "Formato inválido" }, { status: 400 });
   })
 ];
