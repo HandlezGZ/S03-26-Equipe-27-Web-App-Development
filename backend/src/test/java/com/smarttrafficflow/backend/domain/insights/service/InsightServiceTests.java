@@ -85,6 +85,35 @@ class InsightServiceTests {
         assertThat(response.insights().get(1)).contains("UNKNOWN");
     }
 
+    @Test
+    @DisplayName("returns the same two insight messages when only one record exists")
+    void returnsTwoInsightsForASingleRecord() {
+        when(trafficRecordService.findAllEntities()).thenReturn(List.of(
+                recordAt(10, "HIGHWAY", 300)
+        ));
+
+        TrafficInsightResponse response = insightService.generateInsights(null);
+
+        assertThat(response.insights()).hasSize(2);
+        assertThat(response.insights().get(0)).contains("10h");
+        assertThat(response.insights().get(1)).contains("HIGHWAY");
+    }
+
+    @Test
+    @DisplayName("still returns insights when multiple groups tie on total volume")
+    void returnsInsightsWhenThereAreTiedVolumes() {
+        when(trafficRecordService.findAllEntities()).thenReturn(List.of(
+                recordAt(8, "ARTERIAL", 100),
+                recordAt(9, "HIGHWAY", 100)
+        ));
+
+        TrafficInsightResponse response = insightService.generateInsights(null);
+
+        assertThat(response.insights()).hasSize(2);
+        assertThat(response.insights().get(0)).contains("Horario com maior volume agregado");
+        assertThat(response.insights().get(1)).contains("Tipo de via com maior volume agregado");
+    }
+
     private TrafficRecord recordAt(int hour, String roadType, int volume) {
         TrafficRecord record = new TrafficRecord();
         record.setId(UUID.randomUUID());

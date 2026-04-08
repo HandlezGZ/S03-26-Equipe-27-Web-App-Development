@@ -67,6 +67,22 @@ class ExportServiceTests {
         assertThat(dataLine).endsWith(",303,");
     }
 
+    @Test
+    @DisplayName("returns one data line per exported record")
+    void returnsOneDataLinePerExportedRecord() {
+        when(trafficRecordService.findAll()).thenReturn(List.of(
+                recordResponse("ARTERIAL", 120, "RUSH_HOUR", "SUNNY", 101L, "Avenida Central"),
+                recordResponse("HIGHWAY", 250, null, "RAIN", 202L, "Rodovia Norte"),
+                recordResponse("LOCAL", 80, "SCHOOL", "CLOUDY", 303L, "Rua Um")
+        ));
+
+        List<String> lines = exportService.exportCsv().lines().toList();
+
+        assertThat(lines).hasSize(4);
+        assertThat(lines.get(0)).isEqualTo("id,timestamp,roadType,vehicleVolume,eventType,weather,streetId,streetOsmWayId,streetName");
+        assertThat(lines.get(3)).contains(",LOCAL,80,SCHOOL,CLOUDY,");
+    }
+
     private TrafficRecordResponse recordResponse(
             String roadType,
             int volume,

@@ -79,6 +79,23 @@ class AnalyticsServiceTests {
     }
 
     @Test
+    @DisplayName("aggregates selected records by road type")
+    void aggregatesRoadTypeStatsFromSelectedRecords() {
+        List<UUID> recordIds = List.of(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID());
+        when(trafficRecordService.findEntitiesByIds(recordIds)).thenReturn(List.of(
+                recordAt(8, "ARTERIAL", 100),
+                recordAt(9, "ARTERIAL", 80),
+                recordAt(10, "HIGHWAY", 200)
+        ));
+
+        TrafficStatsResponse response = analyticsService.getStats("roadType", recordIds);
+
+        assertThat(response.labels()).containsExactly("ARTERIAL", "HIGHWAY");
+        assertThat(response.values()).containsExactly(180, 200);
+        verify(trafficRecordService).findEntitiesByIds(recordIds);
+    }
+
+    @Test
     @DisplayName("returns empty labels and values when there are no records")
     void returnsEmptyStatsWhenThereAreNoRecords() {
         when(trafficRecordService.findAllEntities()).thenReturn(List.of());
