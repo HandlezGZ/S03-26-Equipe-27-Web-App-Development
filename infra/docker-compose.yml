@@ -4,13 +4,13 @@ services:
     container_name: smarttraffic-db
     restart: unless-stopped
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: smarttrafficflow
+      POSTGRES_USER: ${SMARTTRAFFIC_DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${SMARTTRAFFIC_DB_PASSWORD:-password}
+      POSTGRES_DB: ${SMARTTRAFFIC_DB_NAME:-smarttrafficflow}
     ports:
-      - "5432:5432"
+      - "${SMARTTRAFFIC_DB_PORT_BIND:-127.0.0.1:5432}:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d smarttrafficflow"]
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -60,10 +60,10 @@ services:
     profiles:
       - admin
     environment:
-      PGADMIN_DEFAULT_EMAIL: admin@admin.com
-      PGADMIN_DEFAULT_PASSWORD: password
+      PGADMIN_DEFAULT_EMAIL: ${SMARTTRAFFIC_PGADMIN_EMAIL:-admin@admin.com}
+      PGADMIN_DEFAULT_PASSWORD: ${SMARTTRAFFIC_PGADMIN_PASSWORD:-password}
     ports:
-      - "8100:80"
+      - "${SMARTTRAFFIC_PGADMIN_PORT_BIND:-127.0.0.1:8100}:80"
     networks:
       - backend-network
     depends_on:
